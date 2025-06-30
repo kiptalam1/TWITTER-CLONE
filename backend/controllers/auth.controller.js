@@ -99,6 +99,13 @@ export async function login(req, res) {
 	}
 }
 export function logout(req, res) {
-	// Handle user logout logic here
-	res.status(200).json({ message: "User logged out successfully" });
+	try {
+		res.cookie("jwt", "", { maxAge: 0 }); // Clear the cookie
+		res.status(200).json({
+			message: "Logged out successfully",
+		});
+	} catch (error) {
+		console.error("Error during logout:", error.message);
+		res.status(500).json({ message: "Internal server error" });
+	}
 }
