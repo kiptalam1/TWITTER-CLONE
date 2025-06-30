@@ -109,3 +109,19 @@ export function logout(req, res) {
 		res.status(500).json({ message: "Internal server error" });
 	}
 }
+
+export async function getMe(req, res) {
+	try {
+		const userId = req.user._id; // Get user ID from the request object
+		const user = await User.findById(userId).select("-password ");
+		if (!user) {
+			return res.status(404).json({ message: "User not found" });
+		}
+		res.status(200).json({
+			data: user,
+		});
+	} catch (error) {
+		console.error("Error in getMe:", error.message);
+		res.status(500).json({ message: "Internal server error" });
+	}
+}

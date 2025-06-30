@@ -3,6 +3,7 @@ import connectMongoDB from "./db/connectDB.js";
 import dotenv from "dotenv";
 dotenv.config();
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.route.js";
 
 const app = express();
@@ -10,7 +11,7 @@ const app = express();
 // middlewares
 app.use(express.json()); // to parse request body as JSON
 app.use(express.urlencoded({ extended: false })); // to parse URL-encoded data
-
+app.use(cookieParser());
 app.use("/api/auth", authRoutes);
 
 app.listen(process.env.PORT || 5000, () => {
