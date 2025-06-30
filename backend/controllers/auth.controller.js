@@ -1,4 +1,4 @@
-import User from "../models/User.js";
+import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import { generateTokenAndSetCookie } from "../lib/utils/generateToken.js";
 
@@ -62,9 +62,41 @@ export async function signup(req, res) {
 	}
 }
 
-export function login(req, res) {
-	// Handle user login logic here
-	res.status(200).json({ message: "User logged in successfully" });
+export async function login(req, res) {
+	try {
+		const { username, password } = req.body;
+		// check if user exists;
+		const existingUser = await User.findOne({ username });
+		if (!existingUser) {
+			return res.status(400).json({ error: "Invalid username" });
+		}
+		// check if password is correct;
+		const isPasswordCorrect = await bcrypt.compare(
+			password,
+			existingUser.password || ""
+		);
+		if (!isPasswordCorrect) {
+			return res.status(400).json({ error: "Wrong password" });
+		}
+		// generate token and set cookie;
+		generateTokenAndSetCookie(existingUser._id, res);
+		res.status(200).json({
+			message: "success",
+			data: {
+				_id: existingUser._id,
+				username: existingUser.username,
+				fullName: existingUser.fullName,
+				email: existingUser.email,
+				followers: existingUser.followers,
+				following: existingUser.following,
+				coverImage: existingUser.coverImage,
+				profileImage: existingUser.profileImage,
+			},
+		});
+	} catch (error) {
+		console.error("Error during login:", error.message);
+		res.status(500).json({ message: "Internal server error" });
+	}
 }
 export function logout(req, res) {
 	// Handle user logout logic here

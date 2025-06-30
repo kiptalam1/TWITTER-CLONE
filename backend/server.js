@@ -9,6 +9,7 @@ const app = express();
 
 // middlewares
 app.use(express.json()); // to parse request body as JSON
+app.use(express.urlencoded({ extended: false })); // to parse URL-encoded data
 
 app.use("/api/auth", authRoutes);
 
