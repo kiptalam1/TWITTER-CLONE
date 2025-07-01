@@ -62,3 +62,24 @@ export async function deletePost(req, res) {
 		res.status(500).json({ error: "Internal server error" });
 	}
 }
+
+export async function commentOnPost(req, res) {
+	try {
+		const postId = req.params.id;
+		const userId = req.user._id;
+		const { text } = req.body;
+
+		// fetch the post to comment on;
+		const post = await Post.findById(postId);
+		if (!post) return res.status(404).json({ error: "Post not found" });
+
+		const comment = { user: userId, text };
+		// append the comment to the post's array of comments;
+		post.comments.push(comment);
+		await post.save();
+		res.status(200).json({ data: post });
+	} catch (error) {
+		console.error("Error commenting on post:", error.message);
+		res.status(500).json({ error: "Internal server error" });
+	}
+}
