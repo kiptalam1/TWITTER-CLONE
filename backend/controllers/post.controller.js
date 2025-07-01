@@ -124,3 +124,16 @@ export async function likeUnlikePost(req, res) {
 		res.status(500).json({ error: "Internal server error" });
 	}
 }
+
+export async function getAllPosts(req, res) {
+	try {
+		const posts = await Post.find().sort({ createdAt: -1 });
+
+		if (posts.length === 0)
+			return res.status(200).json({ message: "Not posts yet", data: [] });
+		res.status(200).json({ data: posts });
+	} catch (error) {
+		console.error("Error fetching all posts", error.message);
+		res.status(500).json({ error: "Internal server error" });
+	}
+}
