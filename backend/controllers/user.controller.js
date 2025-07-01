@@ -1,3 +1,7 @@
+import bcrypt from "bcryptjs";
+import { v2 as cloudinary } from "cloudinary";
+
+// models;
 import Notification from "../models/notification.model.js";
 import User from "../models/user.model.js";
 
@@ -76,22 +80,104 @@ export async function getSuggestedUsers(req, res) {
 	try {
 		const currentUserId = req.user._id;
 		// get users whom I already follow;
-		const usersFollowedByMe = await User.findById(currentUserId).select("following");
+		const usersFollowedByMe = await User.findById(currentUserId).select(
+			"following"
+		);
 		// get 10 users in the database;
-		const users = await User.aggregate([{
-			$match: {
-				_id: { $ne: currentUserId }
+		const users = await User.aggregate([
+			{
+				$match: {
+					_id: { $ne: currentUserId },
+				},
 			},
-		}, {
-			$sample: { size: 10 }
-			}]);
+			{
+				$sample: { size: 10 },
+			},
+		]);
 		// exclude users that I follow;
-		const filteredUsers = users.filter((user) => !usersFollowedByMe.following.includes(user._id.toString()));
-		const suggestedUsers = filteredUsers.slice(0, 4)
-		suggestedUsers.forEach(user => user.password = null);
-		res.json({data: suggestedUsers})
+		const filteredUsers = users.filter(
+			(user) => !usersFollowedByMe.following.includes(user._id.toString())
+		);
+		const suggestedUsers = filteredUsers.slice(0, 4);
+		suggestedUsers.forEach((user) => (user.password = null));
+		res.json({ data: suggestedUsers });
 	} catch (error) {
 		console.error("Error fetching suggested users:", error);
 		return res.status(500).json({ error: "Internal server error" });
 	}
-};
+}
+
+export async function updateUser(req, res) {
+	const {
+		username,
+		fullName,
+		currentPassword,
+		newPassword,
+		email,
+		bio,
+		links,
+	} = req.body;
+	let { coverImage, profileImage } = req.body;
+
+	try {
+		let user = await User.findById(req.user._id);
+		if (!user) return res.status(404).json({ error: "User not found" });
+		if (
+			(!currentPassword && newPassword) ||
+			(!newPassword && currentPassword)
+		) {
+			return res
+				.status(400)
+				.json({ error: "Provide both current and new passwords" });
+		}
+		if (currentPassword && newPassword) {
+			const isCorrectPassword = await bcrypt.compare(
+				currentPassword,
+				user.password
+			);
+			if (!isCorrectPassword)
+				return res.status(400).json({ error: "Current password is wrong" });
+		}
+		if (newPassword.length < 6)
+			return res.status(400).json({
+				error: "Password must be at least 6 characters long",
+			});
+		const salt = await bcrypt.genSalt(10);
+		user.password = await bcrypt.hash(currentPassword, salt);
+
+		if (coverImage) {
+			if (user.coverImage) {
+				await cloudinary.uploader.destroy(
+					user.coverImage.split("/").pop().split(".")[0]
+				);
+			}
+
+			const uploadResponse = await cloudinary.uploader.upload(coverImage);
+			coverImage = uploadResponse.secure_url;
+		}
+		if (profileImage) {
+			if (user.profileImage) {
+				// Delete the old profile image from Cloudinary;
+
+				await cloudinary.uploader.destroy(
+					user.profileImage.split("/").pop().split(".")[0]
+				);
+			}
+			const uploadResponse = await cloudinary.uploader.upload(profileImage);
+			profileImage = uploadResponse.secure_url;
+		}
+		user.username = username || user.username;
+		user.fullName = fullName || user.fullName;
+		user.email = email || user.email;
+		user.bio = bio || user.bio;
+		user.links = links || user.links;
+		user.coverImage = coverImage || user.coverImage;
+		user.profileImage = profileImage || user.profileImage;
+		await user.save();
+		user.password = null; // Remove password from the response
+		return res.status(200).json({ message: "success", data: user });
+	} catch (error) {
+		console.error("Error fetching updating user:", error);
+		return res.status(500).json({ error: error.message });
+	}
+}
