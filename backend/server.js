@@ -7,6 +7,7 @@ import cookieParser from "cookie-parser";
 import { v2 as cloudinary } from "cloudinary";
 import authRoutes from "./routes/auth.route.js";
 import userRoutes from "./routes/user.routes.js";
+import postRoutes from "./routes/post.routes.js";
 
 const app = express();
 
@@ -25,6 +26,7 @@ cloudinary.config({
 // routes;
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/posts", postRoutes);
 
 
 app.listen(process.env.PORT || 5000, () => {
