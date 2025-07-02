@@ -2,6 +2,7 @@ import { v2 as cloudinary } from "cloudinary";
 // models;
 import Notification from "../models/notification.model.js";
 import Post from "../models/post.model.js";
+import User from "../models/user.model.js";
 
 export async function createPost(req, res) {
 	try {
@@ -105,10 +106,12 @@ export async function likeUnlikePost(req, res) {
 				{ _id: postId },
 				{ $pull: { likes: { user: userId } } }
 			);
+			await User.updateOne({ _id: userId }, { $pull: { likedPosts: postId } });
 			return res.status(200).json({ message: "Post un-liked successfully" });
 		} else {
 			// like the post;
 			post.likes.push({ user: userId });
+			await User.updateOne({ _id: userId }, { $push: { likedPosts: postId } });
 			await post.save();
 			// then send notification;
 			const notification = new Notification({
@@ -137,6 +140,35 @@ export async function getAllPosts(req, res) {
 		res.status(200).json({ data: posts });
 	} catch (error) {
 		console.error("Error fetching all posts", error.message);
+		res.status(500).json({ error: "Internal server error" });
+	}
+}
+
+export async function getLikedPosts(req, res) {
+	const userId = req.params.id;
+
+	try {
+		const user = await User.findById(userId);
+		if (!user) return res.status(404).json({ error: "User not found" });
+
+		const likedPosts = await Post.find({
+			_id: { $in: user.likedPosts },
+		})
+			.populate({
+				path: "user",
+				select: "-password",
+			})
+			.populate({
+				path: "comments.user",
+				select: "-password",
+			});
+		if (likedPosts.length === 0)
+			return res
+				.status(200)
+				.json({ message: "You have not liked any post yet.", data: [] });
+		res.status(200).json({ data: likedPosts });
+	} catch (error) {
+		console.error("Error fetching liked posts:", error.message);
 		res.status(500).json({ error: "Internal server error" });
 	}
 }
