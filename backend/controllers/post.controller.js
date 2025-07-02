@@ -186,7 +186,7 @@ export async function getFollowingPosts(req, res) {
 				select: "-password",
 			})
 			.populate({
-				path: "comment.user",
+				path: "comments.user",
 				select: "-password",
 			});
 		if (followingPosts.length === 0) {
