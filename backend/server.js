@@ -17,6 +17,8 @@ app.use(express.json()); // to parse request body as JSON
 app.use(express.urlencoded({ extended: true })); // to parse URL-encoded data
 app.use(cookieParser());
 
+
+
 //cloudinary;
 cloudinary.config({
 	cloud_name: process.env.CLOUDINARY_CLOUD_NAME,

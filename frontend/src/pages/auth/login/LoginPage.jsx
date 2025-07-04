@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-
+import toast from "react-hot-toast";
+import { useMutation } from "@tanstack/react-query";
 import XSvg from "../../../components/svgs/X";
 
 import { MdOutlineMail } from "react-icons/md";
@@ -12,16 +13,45 @@ const LoginPage = () => {
 		password: "",
 	});
 
+	const {
+		mutate: loginMutation,
+		isError,
+		error,
+		isPending,
+	} = useMutation({
+		mutationFn: async (formData) => {
+			try {
+				const res = await fetch("/api/auth/login", {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify(formData),
+				});
+				const data = await res.json();
+
+				if (!res.ok) throw new Error(data.error || "Failed to login");
+
+				console.log("data: ", data);
+				return data.data;
+			} catch (error) {
+				console.error(error.message);
+				throw error;
+			}
+		},
+		onSuccess: (data) => {
+			toast.success(data.message || "success");
+		},
+	});
+
 	const handleSubmit = (e) => {
 		e.preventDefault();
-		console.log(formData);
+		loginMutation(formData);
 	};
 
 	const handleInputChange = (e) => {
 		setFormData({ ...formData, [e.target.name]: e.target.value });
 	};
-
-	const isError = false;
 
 	return (
 		<div className="max-w-screen-xl mx-auto flex h-screen">
@@ -56,9 +86,9 @@ const LoginPage = () => {
 						/>
 					</label>
 					<button className="btn rounded-full btn-primary text-white">
-						Login
+						{isPending ? "Loading" : "Login"}
 					</button>
-					{isError && <p className="text-red-500">Something went wrong</p>}
+					{isError && <p className="text-red-500">{error.message}</p>}
 				</form>
 				<div className="flex flex-col gap-2 mt-4">
 					<p className="text-white text-lg">{"Don't"} have an account?</p>

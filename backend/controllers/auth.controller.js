@@ -8,11 +8,11 @@ export async function signup(req, res) {
 		// check if username or email already exists;
 		const existingUser = await User.findOne({ username });
 		if (existingUser) {
-			return res.status(400).json({ message: "Username already exists" });
+			return res.status(400).json({ error: "Username already exists" });
 		}
 		const existingEmail = await User.findOne({ email });
 		if (existingEmail) {
-			return res.status(400).json({ message: "Email already exists" });
+			return res.status(400).json({ error: "Email already exists" });
 		}
 		// validate user email;
 		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
