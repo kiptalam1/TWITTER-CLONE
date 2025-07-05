@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import toast from "react-hot-toast";
-import { useMutation } from "@tanstack/react-query";
+// import toast from "react-hot-toast";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import XSvg from "../../../components/svgs/X";
 
 import { MdOutlineMail } from "react-icons/md";
@@ -12,6 +12,8 @@ const LoginPage = () => {
 		username: "",
 		password: "",
 	});
+
+	const queryClient = useQueryClient();
 
 	const {
 		mutate: loginMutation,
@@ -32,15 +34,16 @@ const LoginPage = () => {
 
 				if (!res.ok) throw new Error(data.error || "Failed to login");
 
-				console.log("data: ", data);
+				// console.log("data: ", data);
 				return data.data;
 			} catch (error) {
 				console.error(error.message);
 				throw error;
 			}
 		},
-		onSuccess: (data) => {
-			toast.success(data.message || "success");
+		onSuccess: () => {
+			// refetch authUser;
+			queryClient.invalidateQueries({ queryKey: ["authUser"] });
 		},
 	});
 
