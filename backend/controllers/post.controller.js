@@ -7,27 +7,29 @@ import User from "../models/user.model.js";
 export async function createPost(req, res) {
 	try {
 		const { text } = req.body;
-		let { image } = req.body;
+		let { img } = req.body;
 
 		const userId = req.user.id.toString();
-		if (!text && !image) {
+		if (!text && !img) {
 			return res
 				.status(400)
 				.json({ error: "Post must contain text or an image" });
 		}
-		if (image) {
-			const uploadResult = await cloudinary.uploader.upload(image);
-			image = uploadResult.secure_url;
+		if (img) {
+			const uploadResult = await cloudinary.uploader.upload(img);
+			img = uploadResult.secure_url;
 		}
+
 		const newPost = new Post({
 			text,
-			image,
+			image: img,
 			user: userId,
 		});
+		// console.log("New Post before save:", newPost);
 		await newPost.save();
 		res.status(201).json({
 			message: " success",
-			post: newPost,
+			data: newPost,
 		});
 	} catch (error) {
 		console.error("Error creating post:", error.message);

@@ -38,8 +38,8 @@ const CreatePost = () => {
 		onSuccess: (data) => {
 			setImg(null);
 			setText("");
+			imgRef.current.value = null;
 			toast.success(data.message || "Post created successfully");
-			// invalidate query to refetch posts;
 			queryClient.invalidateQueries({ queryKey: ["posts"] });
 		},
 	});
@@ -53,8 +53,8 @@ const CreatePost = () => {
 		const file = e.target.files[0];
 		if (file) {
 			const reader = new FileReader();
-			reader.onload = () => {
-				setImg(reader.result);
+			reader.onloadend = () => {
+				setImg(reader.result); // full base64 string
 			};
 			reader.readAsDataURL(file);
 		}
@@ -69,7 +69,7 @@ const CreatePost = () => {
 			</div>
 			<form className="flex flex-col gap-2 w-full" onSubmit={handleSubmit}>
 				<textarea
-					className="textarea w-full p-0 text-lg resize-none border-none focus:outline-none  border-gray-800"
+					className="textarea w-full p-0 text-lg resize-none border-none focus:outline-none border-gray-800"
 					placeholder="What is happening?!"
 					value={text}
 					onChange={(e) => setText(e.target.value)}
@@ -100,7 +100,7 @@ const CreatePost = () => {
 					</div>
 					<input
 						type="file"
-						accept="/image/*"
+						accept="image/*"
 						hidden
 						ref={imgRef}
 						onChange={handleImgChange}
@@ -114,4 +114,5 @@ const CreatePost = () => {
 		</div>
 	);
 };
+
 export default CreatePost;

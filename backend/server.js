@@ -13,7 +13,7 @@ import notificationRoutes from "./routes/notification.routes.js";
 const app = express();
 
 // middlewares
-app.use(express.json()); // to parse request body as JSON
+app.use(express.json({limit: "5mb"})); // to parse request body as JSON and limit to prevent DOS attacks;
 app.use(express.urlencoded({ extended: true })); // to parse URL-encoded data
 app.use(cookieParser());
 
