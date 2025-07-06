@@ -109,7 +109,11 @@ export async function likeUnlikePost(req, res) {
 				{ $pull: { likes: { user: userId } } }
 			);
 			await User.updateOne({ _id: userId }, { $pull: { likedPosts: postId } });
-			return res.status(200).json({ message: "Post un-liked successfully" });
+			const updatedLikes = post.likes.filter(
+				(like) => like.user.toString() !== userId.toString()
+			);
+
+			return res.status(200).json({ updatedLikes });
 		} else {
 			// like the post;
 			post.likes.push({ user: userId });
@@ -122,7 +126,8 @@ export async function likeUnlikePost(req, res) {
 				type: "like",
 			});
 			await notification.save();
-			return res.status(200).json({ message: "Post liked successfully" });
+			const updatedLikes = post.likes;
+			return res.status(200).json({ updatedLikes });
 		}
 	} catch (error) {
 		console.error("Error on likeUnlikePost:", error.message);
