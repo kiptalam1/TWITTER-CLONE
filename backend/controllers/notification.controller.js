@@ -4,7 +4,10 @@ export async function getNotifications(req, res) {
 	try {
 		const userId = req.user._id;
 
-		const notifications = await Notification.find({ to: userId });
+		const notifications = await Notification.find({ to: userId })
+			.populate("from", "username profileImg")
+			.sort({ createdAt: -1 });
+		
 		await Notification.updateMany({ to: userId }, { read: true });
 		res.status(200).json({ data: notifications });
 	} catch (error) {
