@@ -8,6 +8,7 @@ import { FaTrash } from "react-icons/fa";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import LoadingSpinner from "./LoadingSpinner";
+import { formatPostDate } from "../../utils/date";
 
 const Post = ({ post }) => {
 	const queryClient = useQueryClient();
@@ -15,12 +16,8 @@ const Post = ({ post }) => {
 	const [comment, setComment] = useState("");
 	const postOwner = post.user;
 	const isLiked = post.likes.some((like) => like.user === authUser._id);
-
 	const isMyPost = authUser._id === post.user._id;
-
-	const formattedDate = "1h";
-
-	// const isCommenting = false;
+	const formattedDate = formatPostDate(post.createdAt);
 
 	const { mutate: commentPost, isPending: isCommenting } = useMutation({
 		mutationFn: async () => {
