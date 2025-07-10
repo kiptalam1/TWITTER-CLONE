@@ -20,7 +20,32 @@ const Post = ({ post }) => {
 
 	const formattedDate = "1h";
 
-	const isCommenting = false;
+	// const isCommenting = false;
+
+	const { mutate: commentPost, isPending: isCommenting } = useMutation({
+		mutationFn: async () => {
+			try {
+				const res = await fetch(`/api/posts/comment/${post._id}`, {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({ text: comment }),
+				});
+				const data = await res.json();
+				if (!res.ok) throw new Error(data.error);
+				return data;
+			} catch (error) {
+				throw new Error(error.message);
+			}
+		},
+		onSuccess: () => {
+			toast.success("success");
+			setComment("");
+			// invalidate query to refetch data;
+			queryClient.invalidateQueries({ queryKey: ["posts"] });
+		},
+	});
 
 	const { mutate: deletePost, isDeleting: isDeleting } = useMutation({
 		mutationFn: async () => {
@@ -73,9 +98,12 @@ const Post = ({ post }) => {
 
 	const handlePostComment = (e) => {
 		e.preventDefault();
+		if (isCommenting) return;
+		commentPost();
 	};
 
 	const handleLikePost = () => {
+		if (isLiking) return;
 		likePost();
 	};
 
