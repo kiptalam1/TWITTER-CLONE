@@ -120,45 +120,53 @@ export async function updateUser(req, res) {
 	let { coverImage, profileImage } = req.body;
 
 	try {
-		let user = await User.findById(req.user._id);
+		const user = await User.findById(req.user._id);
 		if (!user) return res.status(404).json({ error: "User not found" });
-		if (
-			(!currentPassword && newPassword) ||
-			(!newPassword && currentPassword)
-		) {
-			return res
-				.status(400)
-				.json({ error: "Provide both current and new passwords" });
-		}
-		if (currentPassword && newPassword) {
+
+		// ✅ Only run password logic if one or both password fields are present
+		if (currentPassword || newPassword) {
+			// ✅ Prevent partial updates that would corrupt password state
+			if (!currentPassword || !newPassword) {
+				return res.status(400).json({
+					error: "Provide both current and new passwords",
+				});
+			}
+
+			// ✅ Enforce password length validation only if newPassword is provided
+			if (newPassword.length < 6) {
+				return res.status(400).json({
+					error: "Password must be at least 6 characters long",
+				});
+			}
+
+			// ✅ Check if current password is correct
 			const isCorrectPassword = await bcrypt.compare(
 				currentPassword,
 				user.password
 			);
-			if (!isCorrectPassword)
+			if (!isCorrectPassword) {
 				return res.status(400).json({ error: "Current password is wrong" });
-		}
-		if (newPassword.length < 6)
-			return res.status(400).json({
-				error: "Password must be at least 6 characters long",
-			});
-		const salt = await bcrypt.genSalt(10);
-		user.password = await bcrypt.hash(currentPassword, salt);
+			}
 
+			// ✅ Hash the new password correctly (previously it was re-hashing currentPassword by mistake)
+			const salt = await bcrypt.genSalt(10);
+			user.password = await bcrypt.hash(newPassword, salt);
+		}
+
+		// ✅ Upload and replace cover image if provided
 		if (coverImage) {
 			if (user.coverImage) {
 				await cloudinary.uploader.destroy(
 					user.coverImage.split("/").pop().split(".")[0]
 				);
 			}
-
 			const uploadResponse = await cloudinary.uploader.upload(coverImage);
 			coverImage = uploadResponse.secure_url;
 		}
+
+		// ✅ Upload and replace profile image if provided
 		if (profileImage) {
 			if (user.profileImage) {
-				// Delete the old profile image from Cloudinary;
-
 				await cloudinary.uploader.destroy(
 					user.profileImage.split("/").pop().split(".")[0]
 				);
@@ -166,6 +174,8 @@ export async function updateUser(req, res) {
 			const uploadResponse = await cloudinary.uploader.upload(profileImage);
 			profileImage = uploadResponse.secure_url;
 		}
+
+		// ✅ Update all allowed fields
 		user.username = username || user.username;
 		user.fullName = fullName || user.fullName;
 		user.email = email || user.email;
@@ -173,11 +183,13 @@ export async function updateUser(req, res) {
 		user.links = links || user.links;
 		user.coverImage = coverImage || user.coverImage;
 		user.profileImage = profileImage || user.profileImage;
+
 		await user.save();
-		user.password = null; // Remove password from the response
+		user.password = null; // ✅ Sanitize response payload
+
 		return res.status(200).json({ message: "success", data: user });
 	} catch (error) {
-		console.error("Error fetching updating user:", error);
+		console.error("Error updating user:", error); // ✅ Fix log message typo
 		return res.status(500).json({ error: error.message });
 	}
 }

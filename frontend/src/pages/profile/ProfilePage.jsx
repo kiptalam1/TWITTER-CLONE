@@ -1,30 +1,29 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-
+import useFollow from "../../hooks/useFollow";
 import Posts from "../../components/common/Posts";
 import ProfileHeaderSkeleton from "../../components/skeletons/ProfileHeaderSkeleton";
 import EditProfileModal from "./EditProfileModal";
-
 import { POSTS } from "../../utils/db/dummy";
-
 import { FaArrowLeft } from "react-icons/fa6";
 import { IoCalendarOutline } from "react-icons/io5";
 import { FaLink } from "react-icons/fa";
 import { MdEdit } from "react-icons/md";
 import { formatMemberSinceDate } from "../../utils/date/index.js";
-import { useQuery } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
+import useUpdateUserProfile from "../../hooks/useUpdateUserProfile.jsx";
 
 const ProfilePage = () => {
-	const [coverImg, setCoverImg] = useState(null);
-	const [profileImg, setProfileImg] = useState(null);
+	const [coverImage, setCoverImage] = useState(null);
+	const [profileImage, setProfileImage] = useState(null);
 	const [feedType, setFeedType] = useState("posts");
-
+	const queryClient = useQueryClient();
 	const coverImgRef = useRef(null);
 	const profileImgRef = useRef(null);
-
-	const isMyProfile = true;
+	const authUser = queryClient.getQueryData(["authUser"]);
 
 	const { username } = useParams();
+	const { followUnfollow, isPending } = useFollow();
 
 	const {
 		data: user,
@@ -51,12 +50,15 @@ const ProfilePage = () => {
 		if (file) {
 			const reader = new FileReader();
 			reader.onload = () => {
-				state === "coverImg" && setCoverImg(reader.result);
-				state === "profileImg" && setProfileImg(reader.result);
+				state === "coverImg" && setCoverImage(reader.result);
+				state === "profileImg" && setProfileImage(reader.result);
 			};
 			reader.readAsDataURL(file);
 		}
 	};
+	const isMyProfile = user?._id === authUser?._id;
+
+	const amIFollowing = authUser?.following?.includes(user?._id);
 
 	const memberSinceDate = formatMemberSinceDate(user?.createdAt);
 
@@ -64,6 +66,9 @@ const ProfilePage = () => {
 	useEffect(() => {
 		refetch();
 	}, [refetch, username]);
+
+	// update profile image or cover image;
+	const { updateProfile, isUpdating } = useUpdateUserProfile();
 
 	return (
 		<>
@@ -90,7 +95,7 @@ const ProfilePage = () => {
 							{/* COVER IMG */}
 							<div className="relative group/cover">
 								<img
-									src={coverImg || user?.coverImg || "/cover.png"}
+									src={coverImage || user?.coverImage || "/cover.png"}
 									className="h-52 w-full object-cover"
 									alt="cover image"
 								/>
@@ -121,8 +126,8 @@ const ProfilePage = () => {
 									<div className="w-32 rounded-full relative group/avatar">
 										<img
 											src={
-												profileImg ||
-												user?.profileImg ||
+												profileImage ||
+												user?.profileImage ||
 												"/avatar-placeholder.png"
 											}
 										/>
@@ -138,19 +143,25 @@ const ProfilePage = () => {
 								</div>
 							</div>
 							<div className="flex justify-end px-4 mt-5">
-								{isMyProfile && <EditProfileModal />}
+								{isMyProfile && <EditProfileModal authUser={authUser} />}
 								{!isMyProfile && (
 									<button
 										className="btn btn-outline rounded-full btn-sm"
-										onClick={() => alert("Followed successfully")}>
-										Follow
+										onClick={() => followUnfollow(user?._id)}>
+										{isPending && "Loading..."}
+										{!isPending && amIFollowing && "Unfollow"}
+										{!isPending && !amIFollowing && "Follow"}
 									</button>
 								)}
-								{(coverImg || profileImg) && (
+								{(coverImage || profileImage) && (
 									<button
 										className="btn btn-primary rounded-full btn-sm text-white px-4 ml-2"
-										onClick={() => alert("Profile updated successfully")}>
-										Update
+										onClick={async () => {
+											await updateProfile({ coverImage, profileImage });
+											setCoverImage(null);
+											setProfileImage(null);
+										}}>
+										{isUpdating ? "Updating..." : "Update"}
 									</button>
 								)}
 							</div>
